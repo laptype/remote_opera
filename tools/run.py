@@ -5,7 +5,6 @@ import sys
 import fileinput
 from mmcv import Config
 
-# test
 
 python_path = "/home/wangpengcheng/anaconda3/envs/opera/bin/python3"
 test_py_path = "/home/wangpengcheng/tmp/remote_opera/tools/test.py"
