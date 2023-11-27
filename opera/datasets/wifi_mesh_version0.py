@@ -98,7 +98,7 @@ class WifiMeshDataset(dataset):
                 (12, 50, 6)
                 (6, 50, 6)
         """     
-        # imu = csi['imu']    # load IMU data
+        imu = csi['imu']    # load IMU data
   
         csi = csi['wifi_amp'] + csi['wifi_pha']*1j
         csi = csi.transpose(1,2,3,0)
