@@ -73,7 +73,7 @@ class WifiMeshDataset(dataset):
         csi = torch.FloatTensor(csi).permute(0,1,3,2)
 
         # print(csi.dtype)
-
+        # TODO: load h5 文件
         # def load_mat(path: os.path):
         #     result = {}
         #     with h5py.File(path, mode='r') as file:
