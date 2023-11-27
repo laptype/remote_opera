@@ -69,7 +69,7 @@ class PETR(DETR):
 
         
     def forward_train(self,
-                      img,
+                      img, # wifi
                       img_metas,
                       gt_bboxes,
                       gt_labels,
@@ -127,6 +127,11 @@ class PETR(DETR):
             x = torch.cat((x, phd), -1)
 
         x = self.head(x)
+        """
+            lanbo 
+            TODO: imu head, 融合
+        """
+        # x2 = self.head2(imu)
         x = x.reshape(bs, -1, 256)
         losses = self.bbox_head.forward_train(x, img_metas, gt_bboxes,
                                               gt_labels, gt_poses, 

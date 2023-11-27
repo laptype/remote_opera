@@ -2,8 +2,9 @@
 dataset_type = 'opera.WifiMeshDataset'
 # data_root = '/data2/qianbo/wifidataset/'
 
-data_root = '/home/wangpengcheng/WiMU/opera_test/'
-# data_root = '/home/wangpengcheng/WiMU/opera_dataset/'
+# data_root = '/home/wangpengcheng/WiMU/opera_test/'   # mat格式  长度20  wimu数据
+# data_root = '/home/wangpengcheng/WiMU/opera_dataset/'   # mat格式 长度20 学长数据
+data_root = '/home/wangpengcheng/WiMU/wifi_processed_data_20/'   # h5格式 长度20 wimu数据
 
 smpl_path='/home/wangpengcheng/tmp/remote_opera/smpl_packed_info.pth'
 
@@ -29,10 +30,14 @@ test_pipeline = [
         ])
 ]
 
-
+"""
+    When model is :obj:`DistributedDataParallel`,
+    batch size = samples_per_gpu
+"""
 
 data = dict(
-    samples_per_gpu=32,
+    samples_per_gpu=16,
+    # samples_per_gpu=32,
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,

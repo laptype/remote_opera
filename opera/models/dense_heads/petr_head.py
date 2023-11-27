@@ -304,9 +304,15 @@ class PETRHead(AnchorFreeHead):
                 `None` would be returned.
         """
 
-        batch_size = mlvl_feats[0].size(0)
+        # batch_size = mlvl_feats[0].size(0)
 
         query_embeds = self.query_embedding.weight
+        """
+            encoder --> 对应论文中的 csi Feature Encoder ？
+            decoder --> 对应论文中的 Coarse Decoder
+            lanbo: hs decoder的结果？
+        """
+
         hs, init_reference_points, init_reference_poses, init_reference_trans, \
             inter_references_points, inter_references_poses, inter_references_trans, \
             enc_outputs_class, enc_outputs_kpt, enc_outputs_pose, enc_outputs_trans, enc_outputs_shape, memory = \
@@ -330,6 +336,12 @@ class PETRHead(AnchorFreeHead):
         outputs_poses = []
         outputs_trans = []
         outputs_shapes = []
+        # lanbo: hs.shape[0]: 猜 7
+        """
+            TODO: 
+                hs 的维度
+            lvl 是第几层的意思， hs.shape[0] = 7
+        """
         for lvl in range(hs.shape[0]):
             if lvl == 0:
                 reference_points = init_reference_points
@@ -340,13 +352,25 @@ class PETRHead(AnchorFreeHead):
                 reference_poses = inter_references_poses[lvl - 1]
                 reference_trans = inter_references_trans[lvl - 1]
             # reference = inverse_sigmoid(reference)
+            """
+                lanbo:
+                self.cls_branches 是 Linear(self.embed_dims, self.cls_out_channels) 深拷贝了7份
+            
+            """
             outputs_class = self.cls_branches[lvl](hs[lvl])
             tmp_kpt = self.kpt_branches[lvl](hs[lvl])
             tmp_pose = self.pose_branches[lvl](hs[lvl])
             tmp_trans = self.trans_branches[lvl](hs[lvl])
             # magnitude_test = torch.sqrt((tmp_pose**2).squeeze(0).sum(-1).mean())
             # print('pose magn.',lvl, ':', magnitude_test)
+            """
+                self.num_keypoints = 54
+            """
             assert reference_points.shape[-1] == self.num_keypoints * 3
+            """ 
+                tmp_kpt: 当前层的 offsets predict by the dth layer.
+                reference_points: 前一层的结果
+            """
             tmp_kpt += reference_points
             tmp_pose += reference_poses
             tmp_trans += reference_trans
@@ -365,7 +389,9 @@ class PETRHead(AnchorFreeHead):
         outputs_poses = torch.stack(outputs_poses)
         outputs_trans = torch.stack(outputs_trans)
         outputs_shapes = torch.stack(outputs_shapes)
-
+        """
+            hs[-1] 表示最后一层的输出特征
+        """
         if self.as_two_stage:
             return outputs_classes, outputs_kpts, outputs_poses, outputs_trans, outputs_shapes, \
                 enc_outputs_class, enc_outputs_kpt, enc_outputs_pose, enc_outputs_trans, enc_outputs_shape, memory, hs[-1]
@@ -386,7 +412,27 @@ class PETRHead(AnchorFreeHead):
         Returns:
             dict[str, Tensor]: A dictionary of loss components.
         """
+
+        """
+        lanbo: 
+            猜测： refine_targets是Groundtruth
+        
+        """
+        """
+        lanbo: 
+            TODO:
+                猜测：
+                    3200 = 32 * 100 (32 是 batch size, 100是100个querys)
+            SMPL 模型，每个人体模型有10个体型参数+24x3=72个姿态参数，我们用10+72=82个数就可以表示一个SMPL人体
+            pose_targets: (3200, 72): 里面72是smpl里面的参数，表示72个关节点？
+            shape_targets: (3200, 10): 
+            trans_targets: (3200, 3): x, y, z ? 位移？
+            valid_target: (3200) TODO: 
+
+            human_queries: (32, 100, 256) -> (3200, 56)
+        """
         beta_preds, pose_targets, shape_preds, shape_targets, trans_preds, trans_targets, valid_target, kpt_targets, kpt_weights = refine_targets
+        # human_queries: (32, 100, 256) -> (3200, 56)
         human_queries = human_queries.reshape(-1, human_queries.shape[-1])
         pos_inds = valid_target > 0
         if pos_inds.sum() == 0:
@@ -395,11 +441,25 @@ class PETRHead(AnchorFreeHead):
             pos_img_inds = beta_preds.new_zeros([1], dtype=torch.int64)
             human_queries = human_queries.new_zeros(human_queries[:1])
         else:
-            pos_pose_preds = beta_preds[pos_inds]
+            """
+                pos_pose_preds: (65, 132)  65 取决于valid_target中大于0的个数
+            """
+            pos_pose_preds = beta_preds[pos_inds]  
             trans_preds = trans_preds[pos_inds]
             pos_img_inds = (pos_inds.nonzero() / self.num_query).squeeze(1).to(
                 torch.int64)
             human_queries = human_queries[pos_inds]
+        """
+            transformer.forward_refine：
+                输入 
+                memory:
+                    前面encoder的结果: (180, 16, 256)   16 应该是batchsize
+                human_queries:
+                    前面 hs[-1]: 前面encoder+decoder的结果
+                输出：
+                hs：inter_states
+
+        """
         hs, init_reference_pose, inter_references_pose,\
              init_reference_trans, inter_references_trans = self.transformer.forward_refine(
             memory,
@@ -414,6 +474,14 @@ class PETRHead(AnchorFreeHead):
         outputs_poses = []
         outputs_shapes = []
         outputs_trans = []
+        """
+            hs.shape[0] 应该也是7层
+
+            refine_pose_branches里面复制7个 Linear(self.embed_dims, 6) 输出是 6维
+            refine_trans_branches里面复制7个Linear(self.embed_dims, 3) 输出是 3维
+            refine_shape_branches里面复制7个Linear(self.embed_dims, 10) 输出是10维
+
+        """
         for lvl in range(hs.shape[0]):
             if lvl == 0:
                 reference_pose = init_reference_pose
@@ -432,9 +500,24 @@ class PETRHead(AnchorFreeHead):
             outputs_trans.append(outputs_tran)
             outputs_shapes.append(outputs_shape)
 
+        """
+            这个就是最终模型的输出 
+                outputs_poses       : 
+                outputs_shapes
+                outputs_trans
+        """
         outputs_poses = torch.stack(outputs_poses)
         outputs_shapes = torch.stack(outputs_shapes)
         outputs_trans = torch.stack(outputs_trans)
+
+        """
+            [双人] outputs_poses: (2, 32, 22, 6)
+                num_layer:  2
+                num_gt:     32
+                num_keypoints: 22
+                dim:        6
+            [单人] outputs_poses: (2, 16, 22, 6)   
+        """
 
         num_layer, num_gt, num_keypoints, dim = outputs_poses.shape
         outputs_poses = outputs_poses.reshape(-1, num_keypoints*dim)
@@ -444,12 +527,32 @@ class PETRHead(AnchorFreeHead):
         global_orient_pred = rot6D_to_angular(global_orient_pred)
         body_pose_pred = rot6D_to_angular(body_pose_pred)
         outputs_poses = torch.cat((global_orient_pred, body_pose_pred, torch.zeros(num_layer * num_gt, 6).to(outputs_poses.device)), 1)
-
+        
         outputs_poses = outputs_poses.reshape(num_layer, num_gt, -1)
 
+        """
+            测试的输出结果 ----------------------------------------------------------------------------
+            [单人]
+                outputs_poses:  (2, 16, 72)
+                outputs_shapes: (2, 16, 10)
+                outputs_trans:  (2, 16, 3)
+            [双人]
+                outputs_poses:  (2, 32, 72)
+                outputs_shapes: (2, 32, 10)
+                outputs_trans:  (2, 32, 3)
+        """
         if not self.training:
             return outputs_poses, outputs_shapes, outputs_trans
         
+        """
+            下面的应该都是在计算loss吧 -----------------------------------------------------------------
+            [双人]
+                pose_targets: (1600, 72) := 16 * 100, 72
+                    在里面选了pos_inds: valid_target>0的下标
+                    -> pose_targets: [x, 72] x是pos_inds里面ture的下标
+                
+        """
+        # 获取groundtruth
         pose_targets = pose_targets[pos_inds]
         shape_targets = shape_targets[pos_inds]
         trans_targets = trans_targets[pos_inds]
@@ -511,11 +614,21 @@ class PETRHead(AnchorFreeHead):
         return losses
 
     # over-write because img_metas are needed as inputs for bbox_head.
+    """
+        lanbo:
+        模型的输入：
+            x: (B, 180, 256)    wifi 数据
+            [单人]
+                gt_poses: list  B * (1, 72)   groundtruth pose 单人是 (1, 72)
+                gt_shapes:      B * (1, 10)
+                gt_keypoints:   B * (1, 54, 3)
+                cam_trans:      B * (1, 3)
+    """
     def forward_train(self,
                       x,
                       img_metas,
                       gt_bboxes,
-                      gt_labels=None,
+                      gt_labels=None, 
                       gt_poses=None, 
                       gt_shapes=None,
                       gt_keypoints=None,
@@ -548,14 +661,32 @@ class PETRHead(AnchorFreeHead):
         """
         assert proposal_cfg is None, '"proposal_cfg" must be None'
         outs = self(x, img_metas)
+        """
+            human_queries: hs[-1]: 表示前面encoder+decoder最后一层输出的特征
+            memory: 是前面encoder的输出
+
+            outs: len = 12
+            memory, human_queries = outs[-2:]
+                memory:         (180, 16, 256): TODO 16是batchsize吗
+                human_queries:  (16, 100, 256)
+
+
+            outs = outs[:-2]: -> len = 10
+        """
         memory, human_queries = outs[-2:]
         outs = outs[:-2]
+        """
+            loss_inputs = outs (10) + (8) = 18
+        """
         loss_inputs = outs + (gt_bboxes, gt_labels, gt_keypoints, gt_poses, gt_shapes, gt_areas,
                                   cam_trans, img_metas)
         losses_and_targets = self.loss(
             *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
         losses, refine_targets = losses_and_targets
         # get pose refinement loss
+        """
+            得到最后的loss。训练时候最后一步输出
+        """
         if self.with_kpt_refine:
             losses = self.forward_refine(memory, human_queries, refine_targets,
                                         losses, img_metas)
@@ -1119,7 +1250,7 @@ class PETRHead(AnchorFreeHead):
         # lanbo shan
         # loss_prior = self.loss_prior_rpn(pose_preds, shape_preds, pose_weight)
         # return loss_cls, loss_kpt, loss_pose, loss_trans, loss_shape, loss_joints, loss_prior
-        print(f'loss_cls: {loss_cls.shape} loss_pose: {loss_pose} loss_joints: {loss_cls.shape}')
+        # print(f'loss_cls: {loss_cls.shape} loss_pose: {loss_pose} loss_joints: {loss_cls.shape}')
         # loss_prior = torch.zeros()
         return loss_cls, loss_kpt, loss_pose, loss_trans, loss_shape, loss_joints, None
 

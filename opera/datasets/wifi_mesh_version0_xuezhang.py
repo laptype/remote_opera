@@ -26,8 +26,8 @@ class WifiMeshDataset(dataset):
         self.phase_denoising = phase_denoising
         self.amp_wdt = amp_wdt
         self.pipeline = Compose(pipeline)
-        # self.filename_list = self.load_file_name_list(os.path.join(self.data_root, mode + '_list.txt'))
-        self.filename_list = self.load_csv_name_list(os.path.join(self.data_root, mode + '_list_1.csv'))
+        self.filename_list = self.load_file_name_list(os.path.join(self.data_root, mode + '_list.txt'))
+        # self.filename_list = self.load_csv_name_list(os.path.join(self.data_root, mode + '_list.csv'))
         self.All54_to_LSP14_mapper = constants.joint_mapping(constants.SMPL_ALL_54, constants.LSP_14)
         # self.filename_list = self.filename_list[:10]
         self.smpl = SMPL(smpl_path)
@@ -38,78 +38,42 @@ class WifiMeshDataset(dataset):
         results['img_prefix'] = self.img_dir
 
     def get_item_single_frame(self,index): 
-        # data_name = self.filename_list[index]       # txt
+        data_name = self.filename_list[index]       # txt
 
-        csi_path = self.filename_list[index][0]       # csv
-        annotation_path = self.filename_list[index][1]
+        # csi_path = self.filename_list[index][0]       # csv
+        # annotation_path = self.filename_list[index][1]
 
-        # csi_path = os.path.join(self.data_root,'csi',(str(data_name)+'.mat'))
+        csi_path = os.path.join(self.data_root,'csi',(str(data_name)+'.mat'))
         # csi_path = os.path.join(self.data_root,'csi',(str(data_name)+'.h5')) 
-        # annotation_path = os.path.join(self.data_root,'annotations',(str(data_name)+'.npz'))
+        annotation_path = os.path.join(self.data_root,'annotations',(str(data_name)+'.npz'))
     
         warnings.filterwarnings("ignore", category=UserWarning)
         """
           用来忽略烦人的  UserWarning: Casting complex values to real discards the imaginary part
         """
         
-        # try:
-        #     csi = io.loadmat(csi_path)['csi_out']
-        #     csi = np.array(csi)
-        # except:
-        #     csi = h5py.File(csi_path)['csi_out'][()]
-        #     csi = csi['real'] + csi['imag']*1j
-        #     csi = np.array(csi).transpose(3,2,1,0)
-        #     csi = csi.astype(np.complex128)
+        try:
+            csi = io.loadmat(csi_path)['csi_out']
+            csi = np.array(csi)
+        except:
+            csi = h5py.File(csi_path)['csi_out'][()]
+            csi = csi['real'] + csi['imag']*1j
+            csi = np.array(csi).transpose(3,2,1,0)
+            csi = csi.astype(np.complex128)
         
-        # '''csi_amp = abs(csi)
-        # csi_amp = torch.FloatTensor(csi_amp).permute(0,1,3,2) #csi tensor: (3*3*30*20 -> 3*3*20*30)
+        '''csi_amp = abs(csi)
+        csi_amp = torch.FloatTensor(csi_amp).permute(0,1,3,2) #csi tensor: (3*3*30*20 -> 3*3*20*30)
         
-        # csi_ph = np.unwrap(np.angle(csi))
-        # csi_ph = fft.ifft(csi_ph)
-        # csi_phd = csi_ph[:,:,:,1:20] - csi_ph[:,:,:,0:19]
-        # csi_phd = torch.FloatTensor(csi_phd).permute(0,1,3,2)
-        # '''
-        # if self.amp_wdt:
-        #     csi_amp = self.wdt(csi)
-        # else:
-        #     csi_amp = np.abs(csi)
-        #     # csi_amp = torch.FloatTensor(csi_amp)
-        
-        # if self.phase_denoising:
-        #     csi_ph = self.phase_deno(csi)
-        # else:
-        #     csi_ph = np.angle(csi)
-        #     # csi_ph = np.unwrap(csi_ph)
-        #     # csi_ph = fft.ifft(csi_ph)
-        # csi = np.concatenate((csi_amp, csi_ph), axis=2)
-        # csi = torch.FloatTensor(csi).permute(0,1,3,2)
-
-        # print(csi.dtype)
-        # TODO: load h5 文件
-        def load_mat(path: os.path):
-            result = {}
-            with h5py.File(path, mode='r') as file:
-                for key in file.keys():
-                    result[key] = np.array(file[key])
-            return result
-        csi = load_mat(csi_path)
-        """
-            imu data:
-                (12, 50, 6)
-                (6, 50, 6)
-        """     
-        # imu = csi['imu']    # load IMU data
-  
-        csi = csi['wifi_amp'] + csi['wifi_pha']*1j
-        csi = csi.transpose(1,2,3,0)
-        csi = csi.astype(np.complex128)
-        # print(f"原始数据:{csi.shape}")
-
+        csi_ph = np.unwrap(np.angle(csi))
+        csi_ph = fft.ifft(csi_ph)
+        csi_phd = csi_ph[:,:,:,1:20] - csi_ph[:,:,:,0:19]
+        csi_phd = torch.FloatTensor(csi_phd).permute(0,1,3,2)
+        '''
         if self.amp_wdt:
             csi_amp = self.wdt(csi)
         else:
-            csi_amp = abs(csi)
-            csi_amp = torch.FloatTensor(csi_amp)
+            csi_amp = np.abs(csi)
+            # csi_amp = torch.FloatTensor(csi_amp)
         
         if self.phase_denoising:
             csi_ph = self.phase_deno(csi)
@@ -117,30 +81,46 @@ class WifiMeshDataset(dataset):
             csi_ph = np.angle(csi)
             # csi_ph = np.unwrap(csi_ph)
             # csi_ph = fft.ifft(csi_ph)
-        # print(f"ph数据:{csi_ph.shape}")
-        # print(f"am数据:{csi_amp.shape}")
         csi = np.concatenate((csi_amp, csi_ph), axis=2)
         csi = torch.FloatTensor(csi).permute(0,1,3,2)
-        # print(f"处理数据数据:{csi.shape}")
+
+        # print(csi.dtype)
+        # TODO: load h5 文件
+        # def load_mat(path: os.path):
+        #     result = {}
+        #     with h5py.File(path, mode='r') as file:
+        #         for key in file.keys():
+        #             result[key] = np.array(file[key])
+        #     return result
+        # csi = load_mat(csi_path)
+        # csi = csi['wifi_amp'] + csi['wifi_pha']*1j
+        # csi = csi.transpose(1,2,3,0)
+        # csi = csi.astype(np.complex128)
+        # # print(f"原始数据:{csi.shape}")
+
+        # if self.amp_wdt:
+        #     csi_amp = self.wdt(csi)
+        # else:
+        #     csi_amp = abs(csi)
+        #     csi_amp = torch.FloatTensor(csi_amp)
+        
+        # if self.phase_denoising:
+        #     csi_ph = self.phase_deno(csi)
+        # else:
+        #     csi_ph = np.angle(csi)
+        #     # csi_ph = np.unwrap(csi_ph)
+        #     # csi_ph = fft.ifft(csi_ph)
+        # # print(f"ph数据:{csi_ph.shape}")
+        # # print(f"am数据:{csi_amp.shape}")
+        # csi = np.concatenate((csi_amp, csi_ph), axis=2)
+        # csi = torch.FloatTensor(csi).permute(0,1,3,2)
+        # # print(f"处理数据数据:{csi.shape}")
 
 
 
         annotation = np.load(annotation_path, allow_pickle=True)['results'].item()
         # 'cam', 'global_orient', 'body_pose', 'smpl_betas', 'smpl_thetas', 
         # 'center_preds', 'center_confs', 'cam_trans', 'verts', 'joints', 'pj2d_org'
-        """
-            lanbo:
-                [双人]
-                    pose:       [2, 72]
-                    shape:      (2, 10)
-                    keypoint:   (2, 54, 3)
-                    cam_trans:  (2, 3)
-                [单人]
-                    pose:       [1, 72]
-                    shape:      (1, 10)
-                    keypoint:   (1, 54, 3)
-                    cam_trans:  (1, 3)
-        """
         pose = annotation["smpl_thetas"]
         shape = annotation["smpl_betas"]
         keypoint = annotation["joints"][:,:54]

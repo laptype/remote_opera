@@ -47,14 +47,14 @@ for config in config_list:
     """
         TRAIN
     """
-    os.system(f"bash tools/dist_train.sh {config_path}")
+    # os.system(f"bash tools/dist_train.sh {config_path}")
 
     cfg = read_config_py(config_path)
-    # pkl_path = os.path.join(cfg.work_dir, f"epoch_{config['max_epochs']}.pth")
-    # pkl_path = os.path.join(cfg.work_dir, f"epoch_11.pth")   #test用
-    # pkl_path = "/home/wangpengcheng/tmp/remote_opera/results/four_cards_cam_trans_[1105_test]/epoch_5.pth"   #test用
 
-    """
-        TEST
-    """
-    # os.system(f"{python_path} {test_py_path} {config_path} {pkl_path} --work-dir xxx")
+
+    base_path = "/home/wangpengcheng/tmp/remote_opera/results/four_cards_cam_trans_[all_loc_2p_ep100_1120]/epoch_"
+    pth_path_list = [f"{base_path}{i}.pth" for i in range(1, 101)]
+
+    for pth_path in pth_path_list:
+
+        os.system(f"{python_path} {test_py_path} {config_path} {pth_path} --work-dir xxx")

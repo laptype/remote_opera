@@ -484,6 +484,9 @@ class PETRTransformer(Transformer):
         normal_(self.refine_query_pos_embedding.weight)
 
     def random_masking(self, x):
+        """
+            随机把x中 20%的值变成 0.01
+        """
         N, L, D = x.shape
         len_keep = int(L * (1 - self.mask_ratio))
         
@@ -655,9 +658,26 @@ class PETRTransformer(Transformer):
                        pose_branches=None,
                        trans_branches=None,
                        **kwargs):
+        
+        """
+        transformer.forward_refine:
+            输入 
+            memory:
+                前面encoder的结果
+            human_queries:
+                前面 hs[-1]: 前面encoder+decoder的结果
+
+            reference_points_pose: (pos_num, ...)
+                应该是groundtruth
+        
+        """
 
         # pose refinement (17 queries corresponding to 17 keypoints)
         # learnable query and query_pos
+        """
+            pos_num: 人数的意思？
+            get_queries: 里面深拷贝了22个generated_query: 里面是一堆线性层和relu
+        """
         pos_num = reference_points_pose.size(0)
         if self.generated_query:
             query_list = [self.get_queries[_](human_queries) for _ in range(22)]
@@ -672,6 +692,9 @@ class PETRTransformer(Transformer):
             pos_num,
             reference_points_pose.size(1) // 6, 6)
         
+        """
+            random_masking: 随机把20%的值变成0.01？
+        """
         if self.training and self.mask_ratio > 0:
             query = self.random_masking(query)
 
@@ -683,7 +706,9 @@ class PETRTransformer(Transformer):
         # query = torch.cat((human_queries.unsqueeze(0), query), 0)
         pos_memory = memory[:, img_inds, :]
         
-
+        """
+            inter_states 是 refine_decoder 里的 torch.stack(intermediate)
+        """
         inter_states, inter_references_pose, inter_references_trans = self.refine_decoder(
             query=query,
             key=pos_memory,

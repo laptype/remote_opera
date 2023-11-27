@@ -26,7 +26,7 @@ from opera.models import build_model
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a model')
-    parser.add_argument('config', help='train config file path')
+    parser.add_argument('--config', default="configs/wifi/four_cards_cam_trans.py", help='train config file path')
     parser.add_argument('--work-dir', help='the dir to save logs and models')
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
@@ -36,6 +36,7 @@ def parse_args():
         help='resume from the latest checkpoint automatically')
     parser.add_argument(
         '--no-validate',
+        default=True,
         action='store_true',
         help='whether not to evaluate the checkpoint during training')
     group_gpus = parser.add_mutually_exclusive_group()
