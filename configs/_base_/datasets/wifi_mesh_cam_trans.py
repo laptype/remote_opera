@@ -12,7 +12,7 @@ train_pipeline = [
     dict(type='opera.DefaultFormatBundle',
          extra_keys=['gt_poses', 'gt_shapes', 'gt_keypoints', 'gt_labels', 'cam_trans']),
     dict(type='mmdet.Collect',
-         keys=['img', 'gt_bboxes', 'gt_labels', 'gt_poses', 'gt_shapes', 'gt_keypoints', 'gt_areas', 'cam_trans'],
+         keys=['img', 'gt_bboxes', 'gt_labels', 'gt_poses', 'gt_shapes', 'gt_keypoints', 'gt_areas', 'cam_trans','imu'],
          meta_keys=[]),
 ]
 

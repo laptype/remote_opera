@@ -431,13 +431,19 @@ class PETRTransformer(Transformer):
         self.init_layers()
         self.refine_decoder = build_transformer_layer_sequence(refine_decoder)
 
+        """
+            lanbo: 
+                这里改了self.pos_embed的维度为了适配IMU+wifi = (230 * 256) 原先单wifi是 (180 * 256)
+        """
         if pe_mode == 'ST':
             spatial_pos = nn.Embedding(9, 256).weight
             temporal_pos = nn.Embedding(20, 256).weight
             self.pos_embed = spatial_pos.unsqueeze(1).expand(9,20,256) + temporal_pos.unsqueeze(0).expand(9,20,256)
-            self.pos_embed = self.pos_embed.reshape(180, 256)
+            # self.pos_embed = self.pos_embed.reshape(180, 256)     # lanbo
+            self.pos_embed = self.pos_embed.reshape(230, 256)
         elif pe_mode == 'learnable':
-            pe = nn.Embedding(180, 256).weight
+            # pe = nn.Embedding(180, 256).weight    # lanbo
+            pe = nn.Embedding(230, 256).weight
             self.pos_embed = pe
         
         def _get_clones(module, N):

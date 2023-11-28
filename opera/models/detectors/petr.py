@@ -23,7 +23,7 @@ class PETR(DETR):
     """Implementation of `End-to-End Multi-Person Pose Estimation with
     Transformers`"""
 
-    def __init__(self, has_phase=True, amp_wdt=True, *args, **kwargs):
+    def __init__(self, has_phase=True, amp_wdt=True, person_num=1, *args, **kwargs):
         super(DETR, self).__init__(*args, **kwargs)
         self.has_phase = has_phase
         self.amp_wdt = amp_wdt
@@ -67,6 +67,23 @@ class PETR(DETR):
         head.append(Linear(512, 256))
         self.head = nn.Sequential(*head)
 
+        """
+            lanbo：
+                这里更改双人情况
+                head_imu.append(Linear(72, 512))
+        """
+    
+        head_imu = []
+        if person_num == 1:
+            head_imu.append(Linear(36, 512))
+        elif person_num == 2:
+            head_imu.append(Linear(72, 512))
+        else:
+            assert False, "head_imu error"
+        head_imu.append(nn.ReLU())
+        head_imu.append(Linear(512, 256))
+        self.head_imu = nn.Sequential(*head_imu)
+
         
     def forward_train(self,
                       img, # wifi
@@ -78,6 +95,7 @@ class PETR(DETR):
                       gt_keypoints,
                       gt_areas,
                       cam_trans,
+                      imu,
                       gt_bboxes_ignore=None):
         """
         Args:
@@ -125,14 +143,30 @@ class PETR(DETR):
             phd = img[...,pha_start:]
             phd = self.phd_head(phd)
             x = torch.cat((x, phd), -1)
+        
 
+        # imu --------------------------------------------------------------
+        """
+            1128: 应该是加载数据集的问题，报错是dtype不匹配，应该是得把imu数据加载到gpu上面
+        """
+        bs, num, imu_len, imu_channel = imu.shape
+        imu = imu.permute(0, 2, 1, 3)
+        imu = imu.reshape(bs, imu_len, num * imu_channel)
+        imu = imu.reshape(-1, num * imu_channel)
+
+        x_imu = self.head_imu(imu)
         x = self.head(x)
         """
             lanbo 
-            TODO: imu head, 融合
+            1128 imu head, 融合
         """
         # x2 = self.head2(imu)
         x = x.reshape(bs, -1, 256)
+        x_imu = x_imu.reshape(bs, -1, 256)    # ([16, 50, 256])
+
+        x = torch.cat([x, x_imu], dim=1)      # ([16, 230, 256])
+
+
         losses = self.bbox_head.forward_train(x, img_metas, gt_bboxes,
                                               gt_labels, gt_poses, 
                                               gt_shapes,gt_keypoints,

@@ -8,6 +8,7 @@ _base_ = [
 ]
 model = dict(
     type='opera.PETR',
+    person_num=2,   # 这里改人数
     amp_wdt=False,
     backbone=dict(
         type='mmdet.ResNet',

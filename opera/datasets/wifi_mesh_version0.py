@@ -27,7 +27,7 @@ class WifiMeshDataset(dataset):
         self.amp_wdt = amp_wdt
         self.pipeline = Compose(pipeline)
         # self.filename_list = self.load_file_name_list(os.path.join(self.data_root, mode + '_list.txt'))
-        self.filename_list = self.load_csv_name_list(os.path.join(self.data_root, mode + '_list_1.csv'))
+        self.filename_list = self.load_csv_name_list(os.path.join(self.data_root, mode + '_list_2.csv'))
         self.All54_to_LSP14_mapper = constants.joint_mapping(constants.SMPL_ALL_54, constants.LSP_14)
         # self.filename_list = self.filename_list[:10]
         self.smpl = SMPL(smpl_path)
@@ -99,6 +99,7 @@ class WifiMeshDataset(dataset):
                 (6, 50, 6)
         """     
         imu = csi['imu']    # load IMU data
+        imu = torch.FloatTensor(imu)
   
         csi = csi['wifi_amp'] + csi['wifi_pha']*1j
         csi = csi.transpose(1,2,3,0)
@@ -154,7 +155,7 @@ class WifiMeshDataset(dataset):
         gt_areas = torch.tensor([])
         result = dict(img=csi, gt_poses=pose, gt_shapes=shape, gt_keypoints=keypoint, \
                       gt_verts=verts, gt_labels = gt_labels, gt_bboxes = gt_bboxes, \
-                      gt_areas = gt_areas, cam_trans = cam_trans)
+                      gt_areas = gt_areas, cam_trans = cam_trans, imu=imu)
         return result
     
     def __getitem__(self, index):
