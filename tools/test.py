@@ -24,8 +24,8 @@ from opera.models import build_model
 def parse_args():
     parser = argparse.ArgumentParser(
         description='MMDet test (and eval) a model')
-    parser.add_argument('config', help='test config file path')
-    parser.add_argument('checkpoint', help='checkpoint file')
+    parser.add_argument('--config', default="configs/wifi/four_cards_cam_trans.py", help='test config file path')
+    parser.add_argument('--checkpoint', default="/home/wangpengcheng/tmp/remote_opera/results/four_cards_cam_trans_[all_WIMU_1p_ep100_1129]/epoch_1.pth", help='checkpoint file')
     parser.add_argument(
         '--work-dir',
         help='the directory to save the file containing evaluation metrics')
@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument(
         '--gpu-id',
         type=int,
-        default=0,
+        default=1,
         help='id of gpu to use '
         '(only applicable to non-distributed testing)')
     parser.add_argument(
@@ -243,7 +243,7 @@ def main():
         model = build_ddp(
             model,
             cfg.device,
-            device_ids=[int(os.environ['LOCAL_RANK'])],
+            device_ids=[int(os.environ['LOCAL_RANK'])], 
             broadcast_buffers=False)
         outputs = multi_gpu_test(
             model, data_loader, args.tmpdir, args.gpu_collect

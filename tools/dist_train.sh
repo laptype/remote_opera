@@ -5,8 +5,8 @@ python="/home/wangpengcheng/anaconda3/envs/opera/bin/python3"
 CONFIG=$1
 PORT=${PORT:-10036}
 
-CUDA_VISIBLE_DEVICES=0,1,2,3 ${python} -m torch.distributed.launch \
-        --nproc_per_node=4 \
+CUDA_VISIBLE_DEVICES=1,2,3 ${python} -m torch.distributed.launch \
+        --nproc_per_node=3 \
         --master_port='29501' \
         --use_env \
         /home/wangpengcheng/tmp/remote_opera/tools/train.py "$CONFIG" --no-validate --launcher pytorch

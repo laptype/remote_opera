@@ -33,7 +33,7 @@ def read_config_py(config_path):
 
 
 config_list = [
-    {"config_path": "configs/wifi/four_cards_cam_trans.py", "config_tag": "all_loc_2p_ep100_1120", "max_epochs": 100},
+    {"config_path": "configs/wifi/four_cards_cam_trans.py", "config_tag": "all_WIMU_1p_ep100_1129", "max_epochs": 100},
     # {"config_path": "configs/wifi/four_cards_cam_trans.py", "config_tag": "1029_ep-40", "max_epochs": 40},
 ]
 

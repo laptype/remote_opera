@@ -27,7 +27,7 @@ class WifiMeshDataset(dataset):
         self.amp_wdt = amp_wdt
         self.pipeline = Compose(pipeline)
         # self.filename_list = self.load_file_name_list(os.path.join(self.data_root, mode + '_list.txt'))
-        self.filename_list = self.load_csv_name_list(os.path.join(self.data_root, mode + '_list_2.csv'))
+        self.filename_list = self.load_csv_name_list(os.path.join(self.data_root, mode + '_list_1.csv'))
         self.All54_to_LSP14_mapper = constants.joint_mapping(constants.SMPL_ALL_54, constants.LSP_14)
         # self.filename_list = self.filename_list[:10]
         self.smpl = SMPL(smpl_path)

@@ -84,7 +84,10 @@ class PETR(DETR):
         head_imu.append(Linear(512, 256))
         self.head_imu = nn.Sequential(*head_imu)
 
-        
+    """
+        lanbo:
+        train 入口
+    """
     def forward_train(self,
                       img, # wifi
                       img_metas,
@@ -195,7 +198,11 @@ class PETR(DETR):
             *outs, dummy_img_metas, rescale=True)
         return bbox_list
 
-    def simple_test(self, img, img_metas, rescale=False):
+    """
+        lanbo
+        test 入口
+    """
+    def simple_test(self, img, img_metas, imu=None, rescale=False):
         """Test function without test time augmentation.
 
         Args:
@@ -235,10 +242,31 @@ class PETR(DETR):
             phd = img[...,pha_start:]
             phd = self.phd_head(phd)
             x = torch.cat((x, phd), -1)
-            
+
+        # imu --------------------------------------------------------------
+        """
+            1128: 应该是加载数据集的问题，报错是dtype不匹配，应该是得把imu数据加载到gpu上面
+        """
+        imu = imu[0]
+        bs, num, imu_len, imu_channel = imu.shape
+        imu = imu.permute(0, 2, 1, 3)
+        imu = imu.reshape(bs, imu_len, num * imu_channel)
+        imu = imu.reshape(-1, num * imu_channel)
+
+        x_imu = self.head_imu(imu)
         x = self.head(x)
-        # feat = self.head(x)
-        feat = x.reshape(bs, -1, 256)
+        """
+            lanbo 
+            1128 imu head, 融合
+        """
+        # x2 = self.head2(imu)
+        x = x.reshape(bs, -1, 256)
+        x_imu = x_imu.reshape(bs, -1, 256)    # ([16, 50, 256])
+
+        x = torch.cat([x, x_imu], dim=1)      # ([16, 230, 256])
+        # --        
+        feat = x
+
         results_list = self.bbox_head.simple_test(
             feat, img_metas, rescale=rescale)
 

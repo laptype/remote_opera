@@ -33,7 +33,7 @@ def read_config_py(config_path):
 
 
 config_list = [
-    {"config_path": "configs/wifi/four_cards_cam_trans.py", "config_tag": "all_loc_2p_ep100_1120", "max_epochs": 100},
+    {"config_path": "configs/wifi/four_cards_cam_trans.py", "config_tag": "all_WIMU_1p_ep100_1129", "max_epochs": 100},
     # {"config_path": "configs/wifi/four_cards_cam_trans.py", "config_tag": "1029_ep-40", "max_epochs": 40},
 ]
 
@@ -49,10 +49,10 @@ for config in config_list:
     """
     # os.system(f"bash tools/dist_train.sh {config_path}")
 
-    cfg = read_config_py(config_path)
+    # cfg = read_config_py(config_path)
 
 
-    base_path = "/home/wangpengcheng/tmp/remote_opera/results/four_cards_cam_trans_[all_loc_2p_ep100_1120]/epoch_"
+    base_path = "/home/wangpengcheng/tmp/remote_opera/results/four_cards_cam_trans_[all_WIMU_1p_ep100_1129]/epoch_"
     pth_path_list = [f"{base_path}{i}.pth" for i in range(1, 101)]
 
     for pth_path in pth_path_list:

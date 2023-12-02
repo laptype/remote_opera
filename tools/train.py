@@ -26,7 +26,7 @@ from opera.models import build_model
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a model')
-    parser.add_argument('--config', default="configs/wifi/four_cards_cam_trans.py", help='train config file path')
+    parser.add_argument('config', default="configs/wifi/four_cards_cam_trans.py", help='train config file path')
     parser.add_argument('--work-dir', help='the dir to save logs and models')
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
@@ -54,7 +54,7 @@ def parse_args():
     group_gpus.add_argument(
         '--gpu-id',
         type=int,
-        default=3,
+        default=0,
         help='id of gpu to use '
         '(only applicable to non-distributed training)')
     parser.add_argument('--seed', type=int, default=None, help='random seed')

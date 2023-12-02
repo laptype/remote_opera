@@ -1,6 +1,7 @@
 
 # =============================================================================================
-config_tag = "all_loc_2p_ep100_1120"
+# config_tag = "all_loc_2p_ep100_1120"
+config_tag = "all_WIMU_1p_ep100_1129"
 max_epochs = 100
 # =============================================================================================
 _base_ = [
@@ -8,7 +9,7 @@ _base_ = [
 ]
 model = dict(
     type='opera.PETR',
-    person_num=2,   # 这里改人数
+    person_num=1,   # 这里改人数
     amp_wdt=False,
     backbone=dict(
         type='mmdet.ResNet',

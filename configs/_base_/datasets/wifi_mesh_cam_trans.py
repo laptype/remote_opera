@@ -25,7 +25,7 @@ test_pipeline = [
             dict(type='opera.DefaultFormatBundle',
                 extra_keys=['gt_keypoints', 'gt_labels']),
             dict(type='mmdet.Collect',
-                keys=['img'],
+                keys=['img', 'imu'],
                 meta_keys=[]),
         ])
 ]
